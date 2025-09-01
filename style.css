@@ -353,3 +353,21 @@ body {
 .animate-fade-in-out {
     animation: fadeInOut 3s ease-in-out forwards;
 }
+
+
+/* --- Store Item Styles --- */
+.store-item {
+    border-color: #4b5563; /* gray-600 */
+    transition: all 0.2s ease-in-out;
+}
+
+    .store-item .buy-button:disabled {
+        background-color: #4b5563; /* gray-600 */
+        cursor: not-allowed;
+        filter: grayscale(50%);
+    }
+/* 在 style.css 文件中 */
+#main-content {
+    /* ▼▼▼ 新增背景过渡效果 ▼▼▼ */
+    transition: background-image 1s ease-in-out;
+}
