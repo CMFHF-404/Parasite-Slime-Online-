@@ -1267,7 +1267,7 @@ class TimeManager {
         this.skillManager = skillManager;
         this.onTimeAdvanced = onTimeAdvanced;
         this.languageManager = languageManager;
-        this.game = game; 
+        this.game = game;
 
         // 🔧 修复：添加缺失的时间段数组定义
         this.timeSegments = [
@@ -1306,7 +1306,7 @@ class TimeManager {
                 this.uiManager.showMessage('toast_default_flow_activated', 'info', { FLOW_NAME: LANG[`flow_name_${hostFlows.defaultFlow}`] }); // (可选) 提示玩家
             }
         }
-    // ▲▲▲ 重构结束 ▲▲▲
+        // ▲▲▲ 重构结束 ▲▲▲
 
         const currentIndex = this.timeSegments.indexOf(state.time.segment);
         const activeHost = this.stateManager.getActiveHost();
@@ -1407,79 +1407,79 @@ class TimeManager {
         Object.values(state.hosts).forEach(h => h.nsfwUsedThisSegment = false);
 
         Object.keys(state.hosts).forEach(hostId => {
-            const host = state.hosts[hostId];
-            if (!host || host.status === 'DISCONNECTED') return;
-
-            let locationOverridden = false;
-
-            // 1. 最高优先级：处理动态日程规则 (特殊移动)
-            const rules = gameData.dynamicDailyFlows[state.chapter];
-            if (Array.isArray(rules)) {
-                for (const rule of rules) {
-                    if (rule.hostId !== hostId) continue;
-                    if (!rule.condition(state)) continue;
-
-                    // 规则1: 如果AI自身是傀儡，则不执行特殊路线
-                    if (host.isPuppet) continue;
-
-                    // ★ 核心规则：当玩家处于接管/傀儡模式时，其他AI不执行特殊路线
-                    if ((state.controlState === 'SLIME' || state.controlState === 'PERMANENT_SLIME') && hostId !== state.activeHostId) {
-                        continue;
-                    }
-
-                    const isWorkday = state.time.dayOfWeek <= 5;
-                    const segKey = `${state.time.segment}@${isWorkday ? 'workday' : 'weekend'}`;
-                    if (!rule.segments.includes(segKey)) continue;
-
-                    // 执行特殊移动的提示和决策
-                    const dedupeKey = `dynmove_${hostId}_${state.time.day}_${state.time.segment}_${rule.locationId}`;
-                    if (!state.temp[dedupeKey]) {
-                        state.temp[dedupeKey] = true;
-                        const npcName = LANG[`host_name_${hostId}`] || host.name;
-                        const locationName = LANG[this.game.getCurrentChapterLocations()[rule.locationId]?.nameKey] || rule.locationId;
-                        this.uiManager.showMessage('toast_npc_moving_to', 'info', { NPC_NAME: npcName, LOCATION_NAME: locationName });
-                    }
-
-                    host.expectedLocationId = rule.locationId;
-                    state.temp = state.temp || {};
-                    state.temp.locationLocks = state.temp.locationLocks || {};
-                    state.temp.locationLocks[hostId] = `${state.time.day}:${state.time.segment}`;
-                    state.temp.dynNarration = state.temp.dynNarration || {};
-                    state.temp.dynNarration[hostId] = {
-                        key: rule.storyTextKey || null,
-                        day: state.time.day,
-                        segment: state.time.segment
-                    };
-
-                    locationOverridden = true;
-                    break;
-                }
-            }
-
-            // 2. 如果没有被特殊移动覆盖，则处理常规日程
-            if (!locationOverridden) {
+            // 只规划非玩家当前控制的AI宿主
+            if (hostId !== state.activeHostId && state.hosts[hostId].isAiControlled) {
+                const host = state.hosts[hostId];
                 if (host.isPuppet) {
-                    const standby = gameData.chapterData[state.chapter].puppetStandbyLocationId;
-                    host.expectedLocationId = standby;
+                    // 如果是傀儡，规划前往待机地点
+                    const standbyLocation = gameData.chapterData[state.chapter].puppetStandbyLocationId;
+                    host.expectedLocationId = standbyLocation;
                 } else {
-                    const chapterFlows = this.game.getCurrentChapterFlows?.();
-                    if (chapterFlows && chapterFlows[hostId] && Object.keys(chapterFlows[hostId]).length > 0) {
+                    // 如果是正常的AI，按日程规划
+                    const chapterFlows = this.game.getCurrentChapterFlows(); // 使用辅助函数
+                    if (chapterFlows && chapterFlows[hostId]) {
                         const hostFlows = chapterFlows[hostId];
 
-                        let flowKey = hostFlows.defaultFlow || (state.time.dayOfWeek <= 5 ? 'workday' : 'weekend');
-
-                        if (state.story.dailyFlow && hostFlows[state.story.dailyFlow] && hostId === state.activeHostId) {
-                            flowKey = state.story.dailyFlow;
+                        // 修正后的日程表选择逻辑
+                        let flowKey = hostFlows.defaultFlow; // 首先尝试读取默认日程
+                        if (!flowKey) { // 如果没有默认，则根据日期判断
+                            flowKey = state.time.dayOfWeek <= 5 ? 'workday' : 'weekend';
                         }
+                        // 确保我们使用的flowKey在数据中真实存在
+                        const flow = hostFlows[flowKey] || hostFlows[Object.keys(hostFlows)[0]];
 
-                        const seg = hostFlows[flowKey]?.[state.time.segment];
-                        if (seg?.locationId) {
-                            host.expectedLocationId = seg.locationId;
+                        if (flow && flow[state.time.segment]) {
+                            host.expectedLocationId = flow[state.time.segment].locationId;
                         }
                     }
                 }
             }
         });
+        // ▲▲▲ 修正结束 ▲▲▲
+
+        // 3. AI 宿主行动执行 (在这里统一移动)
+        Object.values(state.hosts).forEach(host => {
+            if (host.isAiControlled && host.currentLocationId !== host.expectedLocationId) {
+                host.currentLocationId = host.expectedLocationId;
+            }
+        });
+
+        // 4. 玩家控制的宿主恢复体力/理智 (逻辑不变)
+        const activeHost = this.stateManager.getActiveHost();
+        if (activeHost && state.controlState === 'HOST') {
+            const isNewPeriod = state.time.segment.endsWith('-1');
+            if (isNewPeriod && !isNewDay) {
+                if (activeHost.sanity > 0) {
+                    activeHost.sanity = Math.min(100, activeHost.sanity + 15);
+                    this.uiManager.showMessage(LANG['toast_new_period_sanity_recovered'], 'success');
+                }
+                const staminaRecovery = 20 + (this.skillManager.getSkillRank('hyper_excitement', state.activeHostId) * 20);
+                activeHost.stamina = Math.min(100, activeHost.stamina + staminaRecovery);
+                this.uiManager.showMessage(LANG['toast_stamina_recovered'].replace('{AMOUNT}', staminaRecovery), 'success');
+            }
+        }
+
+        // 5. 检查并扣除控制消耗 (逻辑不变)
+        if (this.updateControlCost()) {
+            this.onTimeAdvanced({ gameEvent: 'force_return_control' });
+        }
+    }
+
+    updateControlCost() {
+        const LANG = this.languageManager.getCurrentLanguageData();
+        const state = this.stateManager.getState();
+        const activeHost = this.stateManager.getActiveHost();
+        if (activeHost && state.controlState === 'SLIME') {
+            if (state.activeHostId === 'song_xin') return false;
+            const cost = 15; activeHost.stamina -= cost;
+            this.uiManager.showMessage(LANG['toast_control_cost'].replace('{COST}', cost), 'warning');
+            if (activeHost.stamina <= 0) {
+                activeHost.stamina = 0;
+                this.uiManager.showMessage(LANG['toast_control_lost_energy'], 'error');
+                return true;
+            }
+        }
+        return false;
     }
 
 }
@@ -1769,7 +1769,22 @@ class EventManager {
                 }
 
                 if (successEventName) {
+                    // 保险丝：先把 “已侵夺” 标记设为 true，避免 UI 窗口期重复
+                    const map = {
+                        song_wei: 'story.flags.chapter1.npc_song_xin.memoryPlundered',
+                        zhang_huili: 'story.flags.chapter2.npc_zhang_huili.memoryPlundered',
+                        liu_min: 'story.flags.chapter2.npc_liu_min.memoryPlundered',
+                        jane: 'story.flags.chapter2.npc_jane.memoryPlundered',
+                    };
+                    const path = map[hostId];
+                    if (path) {
+                        const st = this.stateManager.getState();
+                        this.setFlagByPath(st, path, true);
+                    }
+
+                    // 然后再触发成功事件（事件里原本也会 setFlag，不冲突）
                     this.triggerEvent(successEventName);
+
                 } else {
                     console.error(`No memory plunder success event defined for host: ${hostId}`);
                 }
@@ -2492,18 +2507,11 @@ class Game {
 
         // 1. 玩家控制的宿主：仅在未命中动态规则锁时，才按常规日程回写 expected
         if (state.controlState === 'HOST' && activeHost) {
-            const lockMap = state.temp?.locationLocks || {};
-            const nowKey = `${state.time.day}:${state.time.segment}`;
-
-            // 命中动态规则的搬运锁 -> 不要覆盖 expected
-            if (lockMap[state.activeHostId] !== nowKey) {
-                const hostFlows = this.getActiveHostFlows();
-                if (hostFlows) {
-                    let flowKey = hostFlows.defaultFlow || (state.time.dayOfWeek <= 5 ? 'workday' : 'weekend');
-                    const flow = hostFlows[flowKey] || hostFlows[Object.keys(hostFlows)[0]];
-                    if (flow && flow[state.time.segment]) {
-                        activeHost.expectedLocationId = flow[state.time.segment].locationId;
-                    }
+            const hostFlows = this.getActiveHostFlows();
+            if (hostFlows) {
+                const flow = hostFlows[state.story.dailyFlow] || hostFlows[Object.keys(hostFlows)[0]];
+                if (flow && flow[state.time.segment]) {
+                    activeHost.expectedLocationId = flow[state.time.segment].locationId;
                 }
             }
         }
@@ -2566,28 +2574,7 @@ class Game {
                 case 'health_check_failed': this.eventManager.triggerEvent('health_check_failure'); break;
                 case 'bomb_detonated': this.uiManager.showGameOver('BOMB_DETONATED'); break; // <-- 处理新的事件
             }
-        } else {
-            const state = this.stateManager.getState();
-            if (state.controlState === 'SLIME') {
-                const cost = 15;
-                const activeHost = this.stateManager.getActiveHost(); // ★ 您遗漏了这一行
-
-                if (activeHost) {
-                    activeHost.stamina -= cost;
-                    this.uiManager.showMessage('toast_control_cost', 'warning', { COST: cost });
-
-                    if (activeHost.stamina <= 0) {
-                        activeHost.stamina = 0;
-                        const LANG = this.languageManager.getCurrentLanguageData();
-                        this.uiManager.showMessage(LANG['toast_control_lost_energy'], 'error');
-                        this.returnControl(true);
-
-                        return;
-                    }
-                }
-            }
-            this.update();  
-        }
+        } else { this.update(); }
     }
 
     // 在 Game 类中
@@ -2649,7 +2636,12 @@ class Game {
                 else if (activeHost) activeHost[eff.stat] = Math.max(0, activeHost[eff.stat] + eff.value);
             });
         }
-        if (action.nextFlow) { state.story.dailyFlow = action.nextFlow; }
+        if (action.nextFlow) {
+            state.story.dailyFlow = action.nextFlow;
+            // 关键：马上按新流程刷新 expectedLocation（不推进时间）
+            this.timeManager.updateOnTimePassage();
+        }
+
         if (action.timeEvent === 'advance') this.timeManager.advanceSegment();
         else if (action.event === 'open_nsfw_modal') this.npcManager.openNsfwChoiceModal();
         else if (action.timeEvent === 'nsfw') this.npcManager.triggerNSFW();
