@@ -1,0 +1,174 @@
+*** a/game.js
+--- b/game.js
+***************
+*** 1018,1047 ****
+          // 2. 如果没有被特殊移动覆盖，则处理常规日程
+          if (!locationOverridden) {
+              if (host.isPuppet) {
+                  const standby = gameData.chapterData[state.chapter].puppetStandbyLocationId;
+                  host.expectedLocationId = standby;
+              } else {
+                  const chapterFlows = this.game.getCurrentChapterFlows?.();
+                  if (chapterFlows && chapterFlows[hostId] && Object.keys(chapterFlows[hostId]).length > 0) {
+                      const hostFlows = chapterFlows[hostId];
+  
+!                     let flowKey = hostFlows.defaultFlow || (state.time.dayOfWeek <= 5 ? 'workday' : 'weekend');
+! 
+!                     if (state.story.dailyFlow && hostFlows[state.story.dailyFlow] && hostId === state.activeHostId) {
+!                         flowKey = state.story.dailyFlow;
+!                     }
+  
+                      const seg = hostFlows[flowKey]?.[state.time.segment];
+                      if (seg?.locationId) {
+                          host.expectedLocationId = seg.locationId;
+                      }
+                  }
+              }
+          }
+      });
+  }
+  
+***************
+*** 1391,1396 ****
+      handleAction(actionId) {
+          const action = gameData.actionData[actionId];
+          if (!action) return;
+          const state = this.stateManager.getState();
+          const activeHost = this.stateManager.getActiveHost();
+          if (action.effects) {
+--- 1391,1397 ----
+      handleAction(actionId) {
+          const action = gameData.actionData[actionId];
+          if (!action) return;
+          const state = this.stateManager.getState();
+          const activeHost = this.stateManager.getActiveHost();
+          if (action.effects) {
+***************
+*** 1402,1409 ****
+          }
+-         if (action.nextFlow) { state.story.dailyFlow = action.nextFlow; }
++         if (action.nextFlow) {
++             // 立即切换“上班/请假”后的当期日程，并立刻刷新 expectedLocation
++             state.story.dailyFlow = action.nextFlow;
++             this.timeManager.updateOnTimePassage();
++         }
+          if (action.timeEvent === 'advance') this.timeManager.advanceSegment();
+          else if (action.event === 'open_nsfw_modal') this.npcManager.openNsfwChoiceModal();
+          else if (action.timeEvent === 'nsfw') this.npcManager.triggerNSFW();
+          else this.update();
+      }
+***************
+*** 746,781 ****
+      startMemoryPlunderGame(hostId) {
+          const LANG = this.languageManager.getCurrentLanguageData();
+          this.uiManager.dom.modalOverlay.classList.remove('hidden');
+          this.uiManager.dom.tetrisModal.classList.remove('hidden');
+          const canvas = document.getElementById('tetris-canvas');
+  
+          const onTetrisComplete = (success) => {
+              // 清理：防止后续意外再次触发
+              this.uiManager.dom.tetrisSkipButton.onclick = null;
+              if (this.tetrisManager) { this.tetrisManager.stop(); }
+              this.tetrisManager = null;
+  
+              this.uiManager.closeModal();
+              if (success) {
+                  let successEventName = '';
+                  // ▼▼▼ 核心逻辑：根据传入的角色ID，决定成功后触发哪个事件 ▼▼▼
+                  if (hostId === 'song_wei') {
+                      successEventName = 'memory_plunder_success';
+                  } else if (hostId === 'zhang_huili') {
+                      successEventName = 'memory_plunder_success_zh';
+                  } else if (hostId === 'liu_min') {
+                      successEventName = 'memory_plunder_success_lm';
+                  }
+                  else if (hostId === 'jane') {
+                      successEventName = 'memory_plunder_success_jane';
+                  }
+  
+                  if (successEventName) {
+!                     this.triggerEvent(successEventName);
+                  } else {
+                      console.error(`No memory plunder success event defined for host: ${hostId}`);
+                  }
+              } else {
+                  this.uiManager.showMessage(LANG['toast_mem_plunder_fail'], "error");
+                  this.game.timeManager.advanceSegment();
+              }
+          };
+--- 746,797 ----
+      startMemoryPlunderGame(hostId) {
+          const LANG = this.languageManager.getCurrentLanguageData();
+          this.uiManager.dom.modalOverlay.classList.remove('hidden');
+          this.uiManager.dom.tetrisModal.classList.remove('hidden');
+          const canvas = document.getElementById('tetris-canvas');
+  
+          const onTetrisComplete = (success) => {
+              // 清理：防止后续意外再次触发
+              this.uiManager.dom.tetrisSkipButton.onclick = null;
+              if (this.tetrisManager) { this.tetrisManager.stop(); }
+              this.tetrisManager = null;
+  
+              this.uiManager.closeModal();
+              if (success) {
+                  let successEventName = '';
+                  // ▼▼▼ 核心逻辑：根据传入的角色ID，决定成功后触发哪个事件 ▼▼▼
+                  if (hostId === 'song_wei') {
+                      successEventName = 'memory_plunder_success';
+                  } else if (hostId === 'zhang_huili') {
+                      successEventName = 'memory_plunder_success_zh';
+                  } else if (hostId === 'liu_min') {
+                      successEventName = 'memory_plunder_success_lm';
+                  }
+                  else if (hostId === 'jane') {
+                      successEventName = 'memory_plunder_success_jane';
+                  }
+  
+                  if (successEventName) {
++                     // 保险丝：在触发事件前，先把对应“已侵夺”标记置 true，避免 UI 重渲染窗口期的重复出现
++                     const map = {
++                       song_wei:    'story.flags.chapter1.npc_song_xin.memoryPlundered', // 第一章：宋欣记忆
++                       zhang_huili: 'story.flags.chapter2.npc_zhang_huili.memoryPlundered',
++                       liu_min:     'story.flags.chapter2.npc_liu_min.memoryPlundered',
++                       jane:        'story.flags.chapter2.npc_jane.memoryPlundered',
++                     };
++                     const path = map[hostId];
++                     if (path) {
++                         const state = this.stateManager.getState();
++                         this.setFlagByPath(state, path, true);
++                     }
++                     // 然后再弹出成功事件（事件里保留原有 setFlag/advanceTime，不冲突）
+                      this.triggerEvent(successEventName);
+                  } else {
+                      console.error(`No memory plunder success event defined for host: ${hostId}`);
+                  }
+              } else {
+                  this.uiManager.showMessage(LANG['toast_mem_plunder_fail'], "error");
+                  this.game.timeManager.advanceSegment();
+              }
+          };
+***************
+*** 1004,1015 ****
+                      const chapterFlows = this.game.getCurrentChapterFlows?.();
+                      if (chapterFlows && chapterFlows[hostId] && Object.keys(chapterFlows[hostId]).length > 0) {
+                          const hostFlows = chapterFlows[hostId];
+  
+-                         let flowKey = hostFlows.defaultFlow || (state.time.dayOfWeek <= 5 ? 'workday' : 'weekend');
+- 
+-                         if (state.story.dailyFlow && hostFlows[state.story.dailyFlow] && hostId === state.activeHostId) {
+-                             flowKey = state.story.dailyFlow;
+-                         }
++                         // 【修复】优先按“是否工作日”选择；若该宿主缺失该流程，再兜底 defaultFlow/任意存在的流程；
++                         // 若玩家已手动指定（上班/请假）且是当前宿主，则以玩家选择覆盖。
++                         let flowKey = (state.time.dayOfWeek <= 5 ? 'workday' : 'weekend');
++                         if (!hostFlows[flowKey]) {
++                             flowKey = hostFlows.defaultFlow || Object.keys(hostFlows).find(k => k !== 'defaultFlow') || null;
++                         }
++                         if (state.story.dailyFlow && hostFlows[state.story.dailyFlow] && hostId === state.activeHostId) {
++                             flowKey = state.story.dailyFlow;
++                         }
+  
+                          const seg = hostFlows[flowKey]?.[state.time.segment];
+                          if (seg?.locationId) {
+                              host.expectedLocationId = seg.locationId;
+                          }

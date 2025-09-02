@@ -1267,7 +1267,7 @@ class TimeManager {
         this.skillManager = skillManager;
         this.onTimeAdvanced = onTimeAdvanced;
         this.languageManager = languageManager;
-        this.game = game; 
+        this.game = game;
 
         // 🔧 修复：添加缺失的时间段数组定义
         this.timeSegments = [
@@ -1306,7 +1306,7 @@ class TimeManager {
                 this.uiManager.showMessage('toast_default_flow_activated', 'info', { FLOW_NAME: LANG[`flow_name_${hostFlows.defaultFlow}`] }); // (可选) 提示玩家
             }
         }
-    // ▲▲▲ 重构结束 ▲▲▲
+        // ▲▲▲ 重构结束 ▲▲▲
 
         const currentIndex = this.timeSegments.indexOf(state.time.segment);
         const activeHost = this.stateManager.getActiveHost();
@@ -1466,7 +1466,17 @@ class TimeManager {
                     if (chapterFlows && chapterFlows[hostId] && Object.keys(chapterFlows[hostId]).length > 0) {
                         const hostFlows = chapterFlows[hostId];
 
-                        let flowKey = hostFlows.defaultFlow || (state.time.dayOfWeek <= 5 ? 'workday' : 'weekend');
+                        // 先按是否工作日/周末选择
+                        let flowKey = (state.time.dayOfWeek <= 5 ? 'workday' : 'weekend');
+                        // 如果宿主没有该流程，再兜底 defaultFlow / 任何一个存在的流程
+                        if (!hostFlows[flowKey]) {
+                            flowKey = hostFlows.defaultFlow || Object.keys(hostFlows).find(k => k !== 'defaultFlow') || null;
+                        }
+                        // 如果玩家手动指定了（上班/请假），且是当前宿主，则覆盖
+                        if (state.story.dailyFlow && hostFlows[state.story.dailyFlow] && hostId === state.activeHostId) {
+                            flowKey = state.story.dailyFlow;
+                        }
+
 
                         if (state.story.dailyFlow && hostFlows[state.story.dailyFlow] && hostId === state.activeHostId) {
                             flowKey = state.story.dailyFlow;
@@ -1769,7 +1779,22 @@ class EventManager {
                 }
 
                 if (successEventName) {
+                    // 保险丝：先把 “已侵夺” 标记设为 true，避免 UI 窗口期重复
+                    const map = {
+                        song_wei: 'story.flags.chapter1.npc_song_xin.memoryPlundered',
+                        zhang_huili: 'story.flags.chapter2.npc_zhang_huili.memoryPlundered',
+                        liu_min: 'story.flags.chapter2.npc_liu_min.memoryPlundered',
+                        jane: 'story.flags.chapter2.npc_jane.memoryPlundered',
+                    };
+                    const path = map[hostId];
+                    if (path) {
+                        const st = this.stateManager.getState();
+                        this.setFlagByPath(st, path, true);
+                    }
+
+                    // 然后再触发成功事件（事件里原本也会 setFlag，不冲突）
                     this.triggerEvent(successEventName);
+
                 } else {
                     console.error(`No memory plunder success event defined for host: ${hostId}`);
                 }
@@ -2499,7 +2524,17 @@ class Game {
             if (lockMap[state.activeHostId] !== nowKey) {
                 const hostFlows = this.getActiveHostFlows();
                 if (hostFlows) {
-                    let flowKey = hostFlows.defaultFlow || (state.time.dayOfWeek <= 5 ? 'workday' : 'weekend');
+                    // 先按是否工作日/周末选择
+                    let flowKey = (state.time.dayOfWeek <= 5 ? 'workday' : 'weekend');
+                    // 如果宿主没有该流程，再兜底 defaultFlow / 任何一个存在的流程
+                    if (!hostFlows[flowKey]) {
+                        flowKey = hostFlows.defaultFlow || Object.keys(hostFlows).find(k => k !== 'defaultFlow') || null;
+                    }
+                    // 如果玩家手动指定了（上班/请假），且是当前宿主，则覆盖
+                    if (state.story.dailyFlow && hostFlows[state.story.dailyFlow] && hostId === state.activeHostId) {
+                        flowKey = state.story.dailyFlow;
+                    }
+
                     const flow = hostFlows[flowKey] || hostFlows[Object.keys(hostFlows)[0]];
                     if (flow && flow[state.time.segment]) {
                         activeHost.expectedLocationId = flow[state.time.segment].locationId;
@@ -2586,7 +2621,7 @@ class Game {
                     }
                 }
             }
-            this.update();  
+            this.update();
         }
     }
 
@@ -2649,7 +2684,12 @@ class Game {
                 else if (activeHost) activeHost[eff.stat] = Math.max(0, activeHost[eff.stat] + eff.value);
             });
         }
-        if (action.nextFlow) { state.story.dailyFlow = action.nextFlow; }
+        if (action.nextFlow) {
+            state.story.dailyFlow = action.nextFlow;
+            // 关键：马上按新流程刷新 expectedLocation（不推进时间）
+            this.timeManager.updateOnTimePassage();
+        }
+
         if (action.timeEvent === 'advance') this.timeManager.advanceSegment();
         else if (action.event === 'open_nsfw_modal') this.npcManager.openNsfwChoiceModal();
         else if (action.timeEvent === 'nsfw') this.npcManager.triggerNSFW();
