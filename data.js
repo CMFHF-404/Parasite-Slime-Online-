@@ -346,6 +346,7 @@ const allDailyFlows = {
     }
 };
 
+
 // 在 data.js 文件中
 // ▼▼▼ 使用这个新版本，完整替换掉旧的 chapterData 对象 ▼▼▼
 
@@ -2610,6 +2611,15 @@ const dynamicDailyFlows = {
 };
 // ===== dynamicDailyFlows 结束 =====
 
+// 偏离系统计划的代价（可按需细化到角色/章节）
+const routeDeviationCost = {
+  // 从系统计划是 workday → 实际选 weekend（请假/摆烂）
+  workday_to_weekend: { stamina: 20, suspicion: 60 },
+
+  // 从系统计划是 weekend → 实际选 workday（周末硬上班；示例给个小代价）
+  weekend_to_workday: { stamina: 10, suspicion: 20 }
+};
+
 
 
 
@@ -2633,5 +2643,6 @@ export {
     locationTriggerEvents,
     chapterSelectData,
     dynamicDailyFlows,
-    TIME_SEGMENTS
+    TIME_SEGMENTS,
+    routeDeviationCost
 };

@@ -11,7 +11,7 @@ const LANGS = {
         // Main Menu
         "btn_new_game": "开始新游戏",
         "btn_continue_game": "继续游戏",
-        
+
 
         // Left Sidebar UI
         "status_no_host": "无宿主",
@@ -269,7 +269,7 @@ const LANGS = {
         "task_stranger_desc": "张超的表现让史莱姆难以忘怀，难道自己陷入圈套了？还是自己想多了？接下来是享用送到口的美食，还是小心为上？",
         "task_stranger_step1": "了解周围环境 (可选)",
         "task_stranger_step2": "夺取张慧丽",
-      
+
         "event_talk_to_zc_btn": "和张超聊聊",
         "event_ask_escape_btn": "询问关于疫情的事 (重要)",
         "event_memory_plunder_btn": "记忆侵夺",
@@ -323,7 +323,7 @@ const LANGS = {
         "toast_favor_not_enough_suffix": "/80)，无法夺取她的身体。",
         "move_category_home": "家庭区域",
         "move_category_public": "公共场所",
-        "move_category_work": "工作区域", 
+        "move_category_work": "工作区域",
         "toast_slime_moved_prefix": "史莱姆悄悄移动到了 ",
         "toast_slime_moved_suffix": "。怀疑度增加了{RISK}。",
         "toast_host_moved_prefix": "指令已确认。史莱姆开始调用运动神经元，牵引“{HOST_NAME}”的肌肉纤维。她的腿脚不听使唤地迈动，以最高效的路径前往目标地点：",
@@ -415,7 +415,7 @@ const LANGS = {
         "toast_stamina_down_intense": "体力 -{COST}（激烈活动消耗）",
         "toast_sanity_down_taboo": "理智 -{COST}（禁忌行为带来冲击）",
         "toast_suspicion_up_couple": "双人行为导致怀疑度增加了{SUSPICION}。",
-        "toast_mutation_up_2": "强烈的双人情感波动产生了巨大的能量... 获得2点突变点!",
+        "toast_mutation_up": "强烈的双人情感波动产生了巨大的能量... 获得 {POINTS} 点突变点!",
         "toast_stamina_down": "体力 -{COST}",
         "toast_sanity_down": "理智 -{COST}",
         "toast_warning_excessive_nsfw": "警告：今天过于频繁地寻求慰藉，让她的精神状态变得不稳定...",
@@ -1006,7 +1006,25 @@ const LANGS = {
         "nsfw_desc_lm_kiss_zh_slime": "史莱姆的意志流淌在你当前所操控的“刘敏”体内。它命令眼前这个已经脱线的傀儡——张慧丽——温顺地分开双腿。然后，你操控着刘敏的身体跪在她身前，用唇舌进行着服务。史莱姆冷静地记录着两个容器在互动时产生的能量波动。原来，让一个傀儡为另一个自己操控的傀儡服务，是一种高效且有趣的能量传导方式。",
 
         "toast_npc_moving_to": "{NPC_NAME} 正在前往 {LOCATION_NAME}。",
-    },  
+
+        // 选择路线相关
+        "toast_route_selected": "已选择今日路线：{FLOW_NAME}",
+        "toast_route_deviation": "违背系统计划：体力 -{STAMINA}, 怀疑 +{SUSPICION}",
+
+        "host_song_wei_workday": "上班",
+        "host_song_wei_weekend": "在家",
+
+        "host_zhang_huili_workday": "上班",
+        "host_zhang_huili_weekend": "休息",
+
+        "host_liu_min_workday": "日常监控",
+        "host_liu_min_weekend": "周末巡查",
+
+        "route_cost_suffix": "（体力-{STAMINA}，怀疑+{SUSPICION}）",
+        "route_follow_plan": "遵从计划",
+
+        "plan_today": "设定今日计划",
+    },
     'en': {
         // Meta
         "game_title_long": "Parasite Slime v0.3.0",
@@ -1085,7 +1103,7 @@ const LANGS = {
         "host_name_jane": "Jane",
         "npc_name_liu_min": "Liu Min",
         "host_name_liu_min": "Liu Min",
-        "npc_name_zhao_qimin": "Zhao Qimin", 
+        "npc_name_zhao_qimin": "Zhao Qimin",
         "control_status_takeover": "Controlling",
         "control_status_permanent": "Permanent Control",
         "detach_status_detached": "Detached",
@@ -1273,7 +1291,7 @@ const LANGS = {
         "task_stranger_desc": "Zhang Chao's behavior is unforgettable to the slime. Was it a trap? Or is it overthinking? Should it enjoy the meal served, or proceed with caution?",
         "task_stranger_step1": "Scout the surroundings (Optional)",
         "task_stranger_step2": "Take over Zhang Huili",
-        
+
         "event_talk_to_zc_btn": "Chat with Zhang Chao",
         "event_ask_escape_btn": "Ask about the epidemic (Important)",
         "event_memory_plunder_btn": "Memory Plunder",
@@ -1363,7 +1381,7 @@ const LANGS = {
         "event_takeover_sx_title": "Seizing the Vessel",
         "event_continue_dots": "Continue...",
         "toast_need_golden_cicada_shell": "The 'Golden Cicada Shell' ability must be unlocked to seize a new vessel.",
-        "feedback_favor_not_enoug":"Not enough favorability!",
+        "feedback_favor_not_enoug": "Not enough favorability!",
         "toast_takeover_sx_success": "Successfully seized Song Xin's body! She is now completely yours.",
         "toast_sx_skills_maxed": "Song Xin's Personal Erosion skills have been maxed out automatically! Gained {ADDED_RANKS} skill ranks.",
         "event_reenter_sw_title": "Consciousness Return (Song Wei)",
@@ -1410,7 +1428,7 @@ const LANGS = {
         "toast_stamina_down_intense": "Stamina -{COST} (from intense activity)",
         "toast_sanity_down_taboo": "Sanity -{COST} (from the shock of the taboo act)",
         "toast_suspicion_up_couple": "The paired activity increased Suspicion by {SUSPICION}.",
-        "toast_mutation_up_2": "The intense shared emotional fluctuation produced a huge amount of energy... Gained 2 Mutation Points!",
+        "toast_mutation_up": "The intense emotional resonance between the two of you has unleashed a surge of power... Gained {POINTS} Mutation Points!",
         "toast_stamina_down": "Stamina -{COST}",
         "toast_sanity_down": "Sanity -{COST}",
         "toast_warning_excessive_nsfw": "Warning: Seeking comfort too frequently today has made her mental state unstable...",
@@ -2006,6 +2024,23 @@ const LANGS = {
         "nsfw_desc_lm_kiss_zh_slime": "The slime's will flows through the 'Liu Min' vessel you currently control. It commands the offline puppet before you—Zhang Huili—to obediently part her legs. Then, you direct Liu Min's body to kneel before her and provide service with her lips and tongue. The slime calmly records the energy fluctuations during the interaction. It turns out that having one puppet service another vessel you control is an efficient and amusing way to transfer energy.",
 
         "toast_npc_moving_to": "{NPC_NAME} is heading to {LOCATION_NAME}.",
+
+        "toast_route_selected": "Today's route selected: {FLOW_NAME}",
+        "toast_route_deviation": "Deviated from system plan: Stamina -{STAMINA}, Suspicion +{SUSPICION}",
+
+        "host_song_wei_workday": "Work",
+        "host_song_wei_weekend": "Stay Home",
+
+        "host_zhang_huili_workday": "Work",
+        "host_zhang_huili_weekend": "Rest",
+
+        "host_liu_min_workday": "Daily Monitoring",
+        "host_liu_min_weekend": "Weekend Patrol",
+
+        "route_cost_suffix": " (Stamina -{STAMINA}, Suspicion +{SUSPICION})",
+        "route_follow_plan": "Follow Plan",
+
+        "plan_today": "Set Today's Plan"
     }
 }
 export { LANGS };

@@ -360,6 +360,21 @@ class UIManager {
         this.game = game; // 保存 game 对象的引用
         this.dom = this.getDOMElements();
         this.languageManager = languageManager;
+
+        if (typeof this.closeGenericModal !== 'function') {
+            this.closeGenericModal = () => {
+                if (this.__choicesModal && this.__choicesModal.parentNode) {
+                    this.__choicesModal.parentNode.removeChild(this.__choicesModal);
+                }
+                if (this.__choicesMask && this.__choicesMask.parentNode) {
+                    this.__choicesMask.parentNode.removeChild(this.__choicesMask);
+                }
+                this.__choicesModal = null;
+                this.__choicesMask = null;
+            };
+        }
+
+
     }
 
     getDOMElements() {
@@ -515,6 +530,14 @@ class UIManager {
 
     // 放在 class UIManager { ... } 里，确保全文件只有这一处 renderHostMode 定义
     renderHostMode(state, game, activeHost, LANG) {
+        const routePending =
+            state.time.segment === 'morning-1' &&
+            state.temp?.routePromptPendingDay === state.time.day;
+        if (routePending) {
+            this.dom.choicesTitle.textContent = LANG['story_plan_prompt'] || '今天的计划是？';
+            this.showPlanCtaInChoiceBar(LANG['plan_today'] || '设定今日计划');
+            return; // 阻断后续清空/渲染旧按钮
+        }
         // --- 显示宿主模式的基础区域 ---
         this.dom.choicesDisplay.classList.remove('hidden');
         this.dom.extraActionsContainer.classList.remove('hidden');
@@ -857,6 +880,10 @@ class UIManager {
         this.dom.genericModal.classList.toggle('skill-tree-bg', isSkillTree);
         this.dom.modalTitle.textContent = title;
         this.dom.modalContent.innerHTML = '';
+        this._ensureModalRefs?.();
+        const wantShowClose = (this.__modalCloseNextOpen !== false);
+        this.modal?.closeBtn?.classList.toggle('hidden', !wantShowClose);
+        this.__modalCloseNextOpen = undefined;
         contentCallback(this.dom.modalContent);
     }
 
@@ -874,13 +901,6 @@ class UIManager {
             });
             contentEl.appendChild(container);
         });
-    }
-
-    closeModal() {
-        this.dom.modalOverlay.classList.add('hidden');
-        this.dom.genericModal.classList.add('hidden');
-        this.dom.tetrisModal.classList.add('hidden');
-        this.closeHostManagementModal();
     }
 
     closeHostManagementModal() {
@@ -914,19 +934,44 @@ class UIManager {
         this.dom.confirmModal.classList.add('hidden');
     }
 
-    openEventModal({ title, description, background, choices }) {
-        this.dom.eventModal.style.backgroundImage = `url('${background}')`;
+    openEventModal({ title = '', description = '', background = '', choices = [] } = {}) {
+
+        // ===== 强化状态清理 =====
+        const state = this.game?.stateManager?.getState();
+        if (state?.temp?.routePromptPendingDay === state?.time?.day) {
+            console.log('Force clearing route prompt state due to event modal');
+            state.temp.routePromptPendingDay = -1;
+        }
+
+        // 清理所有路径相关UI
+        this.hidePlanCtaInChoiceBar?.();
+        // ===== 清理结束 =====
+
+        // 2) 背景
+        if (background) {
+            this.dom.eventModal.style.backgroundImage = `url('${background}')`;
+        } else {
+            this.dom.eventModal.style.backgroundImage = '';
+        }
+
+        // 3) 显示弹窗 & 文案
         this.dom.eventModal.classList.remove('hidden');
         this.dom.eventTitle.textContent = title;
         this.dom.eventDescription.innerHTML = description;
+
+        // 4) 渲染按钮
         this.dom.eventChoicesContainer.innerHTML = '';
-        if (choices.length === 1) this.dom.eventChoicesContainer.className = 'flex justify-center';
-        else this.dom.eventChoicesContainer.className = 'grid grid-cols-1 md:grid-cols-2 gap-3';
-        choices.forEach(choice => {
-            const button = this.createActionButton(choice.text, choice.color || 'bg-indigo-600', choice.action);
-            this.dom.eventChoicesContainer.appendChild(button);
+        this.dom.eventChoicesContainer.className =
+            (choices && choices.length === 1)
+                ? 'flex justify-center'
+                : 'grid grid-cols-1 md:grid-cols-2 gap-3';
+
+        (choices || []).forEach(({ text, color, action }) => {
+            const btn = this.createActionButton(text, color || 'bg-indigo-600', action);
+            this.dom.eventChoicesContainer.appendChild(btn);
         });
     }
+
 
     closeEventModal() { this.dom.eventModal.classList.add('hidden'); }
 
@@ -1083,6 +1128,154 @@ class UIManager {
             contentEl.appendChild(container);
         });
     }
+    // UIManager 内部新增 ↓↓↓
+    // --- 懒加载 modal DOM 引用 ---
+    _ensureModalRefs() {
+        if (this.__modalInited) return;
+        this.modal = {
+            overlay: document.getElementById('modal-overlay'),
+            root: document.getElementById('generic-modal'),
+            titleEl: document.getElementById('modal-title'),
+            contentEl: document.getElementById('modal-content'),
+            closeBtn: document.getElementById('modal-close-button'),
+        };
+        this.modal?.closeBtn?.addEventListener('click', () => this.closeGenericModal());
+        this.__modalInited = true;
+    }
+    // UIManager 内（和 _ensureModalRefs 同级）
+    setModalCloseVisible(show) {
+        this._ensureModalRefs?.();
+        const btn = document.getElementById('modal-close-button');
+        if (btn) btn.classList.toggle('hidden', !show);
+    }
+    // 控制通用弹窗右上角“X”的可见性（默认 true）
+    // - setModalCloseVisible(false) 影响“下一次打开”的通用弹窗
+    // - 若弹窗已打开，会立刻更新当前的按钮状态
+    setModalCloseVisible(show = true) {
+        this._ensureModalRefs?.();
+        this.__modalCloseNextOpen = show; // 记录给下一次 open 使用
+        const btn = this.modal?.closeBtn;
+        const root = this.modal?.root;
+        if (btn && root && !root.classList.contains('hidden')) {
+            btn.classList.toggle('hidden', !show);
+        }
+    }
+
+    // --- 正式通用弹窗：标题 + 任意内容节点 ---
+    openGenericModal(title, contentNode) {
+        this._ensureModalRefs();
+        // 默认显示，除非上一处显式要求隐藏
+        const wantShowClose = (this.__modalCloseNextOpen !== false);
+        this.modal?.closeBtn?.classList.toggle('hidden', !wantShowClose);
+        // 用一次就恢复默认（下次又回到“可见”）
+        this.__modalCloseNextOpen = undefined;
+
+        const m = this.modal; if (!m?.root) return;
+
+        if (m.titleEl) m.titleEl.textContent = title || '';
+        if (m.contentEl) {
+            m.contentEl.innerHTML = '';
+            if (contentNode) m.contentEl.appendChild(contentNode);
+        }
+
+        // 打开前：隐藏老的事件按钮（要做什么？那一排）
+        this.__hiddenOldButtons = Array.from(document.querySelectorAll('.action-button, .event-button'));
+        this.__hiddenOldButtons.forEach(el => el.classList.add('hidden')); // 你的 .hidden 就是 display:none 
+
+        m.root.classList.remove('hidden');
+        m.overlay?.classList.remove('hidden');
+    }
+
+    // --- 关闭弹窗，并恢复老按钮 ---
+    closeGenericModal() {
+        this._ensureModalRefs();
+        const m = this.modal; if (!m?.root) return;
+
+        m.root.classList.add('hidden');
+        m.overlay?.classList.add('hidden');
+
+        // 恢复原事件按钮
+        if (this.__hiddenOldButtons) {
+            this.__hiddenOldButtons.forEach(el => el.classList.remove('hidden'));
+            this.__hiddenOldButtons = null;
+        }
+    }
+
+    // --- 选择型弹窗：支持按钮颜色变体（planned=蓝，override=黄） ---
+    openChoicesModal(title, buttons) {
+        const wrap = document.createElement('div');
+        wrap.className = "flex flex-col gap-3";
+
+        (buttons || []).forEach(b => {
+            const btn = document.createElement('button');
+            btn.textContent = b.text || '选项';
+
+            // 基础按钮样式
+            const base =
+                "w-full py-3 px-4 rounded-2xl text-white font-bold transition " +
+                "border focus:outline-none focus:ring-2 focus:ring-white/30";
+            // 颜色变体
+            const variants = {
+                planned: "bg-blue-600 hover:bg-blue-500 border-blue-400/40",
+                override: "bg-amber-600 hover:bg-amber-500 border-amber-400/40",
+                neutral: "bg-white/10 hover:bg-white/15 border-white/10"
+            };
+            btn.className = `${base} ${variants[b.variant || 'neutral']}`;
+
+            btn.onclick = () => {
+                this.closeGenericModal();
+                b.onClick && b.onClick();
+            };
+            wrap.appendChild(btn);
+        });
+
+        this.openGenericModal(title, wrap);
+    }
+
+
+    // 把“设定今日计划”按钮放进文本栏（choice 区域），并临时隐藏旧按钮
+    // 在“要做什么？”栏里插入固定按钮，并锁定容器
+    showPlanCtaInChoiceBar(label = '设定今日计划') {
+        const choices = document.getElementById('choices-container');
+        const extra = document.getElementById('extra-actions-container');
+        if (!choices) return;
+
+        choices.classList.add('route-locked');
+        extra?.classList.add('route-locked');
+
+        let btn = document.getElementById('plan-cta-in-bar');
+        if (!btn) {
+            btn = document.createElement('button');
+            btn.id = 'plan-cta-in-bar';
+            btn.type = 'button';
+            btn.textContent = label;
+            btn.className = 'action-button w-full py-3 px-4 rounded-xl text-white font-bold bg-blue-600 hover:bg-blue-500 transition';
+            btn.onclick = () => this.game?.timeManager?.showDailyRoutePromptIfNeeded?.();
+        }
+        choices.appendChild(btn);
+    }
+
+    // 选定后：移除固定按钮并解锁容器（唯一版本）
+    hidePlanCtaInChoiceBar() {
+        const choices = document.getElementById('choices-container');
+        const extra = document.getElementById('extra-actions-container');
+
+        // 移除“设定今日计划”按钮
+        const btn = document.getElementById('plan-cta-in-bar');
+        if (btn && btn.parentNode) btn.parentNode.removeChild(btn);
+
+        // 解除锁定，恢复所有原按钮的可见性
+        if (choices) choices.classList.remove('route-locked');
+        if (extra) extra.classList.remove('route-locked');
+
+        // 如果你之前临时把旧按钮加了 .hidden，也顺便恢复
+        if (this.__hiddenOldButtons?.length) {
+            this.__hiddenOldButtons.forEach(el => el.classList.remove('hidden'));
+            this.__hiddenOldButtons = null;
+        }
+    }
+
+
 }
 
 class SkillManager {
@@ -1292,34 +1485,51 @@ class TimeManager {
         // ▲▲▲ 新增方法结束 ▲▲▲
     }
 
+    // ▼▼▼ 【BUG修复】请用这个新函数完整替换旧的 advanceSegment 函数 ▼▼▼
     advanceSegment() {
         const LANG = this.languageManager.getCurrentLanguageData();
         const state = this.stateManager.getState();
+        const isRouteChoicePending = state.time.segment === 'morning-1' && state.temp?.routePromptPendingDay === state.time.day;
 
-        // ▼▼▼ 【核心重构】使用新的数据驱动逻辑 ▼▼▼
-        // 当玩家未做选择时 (例如在接管模式下跳过了早晨)
-        if (state.story.dailyFlow === 'none' && state.time.segment === 'morning-1') {
-            const hostFlows = this.game.getActiveHostFlows(); // 使用保存的 game 实例调用辅助函数
-            // 从数据中读取该宿主的默认路线
-            if (hostFlows && hostFlows.defaultFlow) {
-                state.story.dailyFlow = hostFlows.defaultFlow;
-                this.uiManager.showMessage('toast_default_flow_activated', 'info', { FLOW_NAME: LANG[`flow_name_${hostFlows.defaultFlow}`] }); // (可选) 提示玩家
+        // --- 每日路线规划逻辑 ---
+        // 整个逻辑块现在被严格限制，仅当玩家处于【宿主模式】且有待处理的路线选择时才会执行。
+        if (state.controlState === 'HOST' && isRouteChoicePending) {
+            // 尝试显示路线规划弹窗（例如“今天上班还是在家？”）
+            this.showDailyRoutePromptIfNeeded();
+
+            // 如果弹窗已显示且正在等待玩家选择（临时标记未被清除），则必须暂停时间推进。
+            // 玩家点击弹窗内的选项后，游戏流程才会继续。
+            if (state.temp?.routePromptPendingDay === state.time.day) {
+                return; // 流程中断，等待玩家输入。
             }
         }
-        // ▲▲▲ 重构结束 ▲▲▲
+
+        // --- 宿主模式下的备用逻辑 ---
+        // 如果玩家处于【宿主模式】，且由于某种原因（如旧存档）没有设置日程，则自动应用默认日程。
+        // 这可以防止宿主因没有日程而卡住。此逻辑在史莱姆模式下不会运行。
+        if (state.controlState === 'HOST' && state.story.dailyFlow === 'none' && state.time.segment === 'morning-1') {
+            const hostFlows = this.game.getActiveHostFlows();
+            if (hostFlows && hostFlows.defaultFlow) {
+                state.story.dailyFlow = hostFlows.defaultFlow;
+                this.uiManager.showMessage('toast_default_flow_activated', 'info', { FLOW_NAME: LANG[`flow_name_${hostFlows.defaultFlow}`] });
+            }
+        }
+
+        // --- 常规时间推进 ---
+        // 如果游戏执行到这里，说明现在无需进行路线规划，或者玩家不处于宿主模式。
+        // 游戏将正常推进时间。
 
         const currentIndex = this.timeSegments.indexOf(state.time.segment);
         const activeHost = this.stateManager.getActiveHost();
-
-        // ▼▼▼ 【核心修复】重新定义被意外删除的 activeHostId 变量 ▼▼▼
         const activeHostId = state.activeHostId;
 
-        // 现在下面的 if 语句可以正常工作了
+        // 检查每日结束时的永久夺取事件
         if (activeHost && this.skillManager.getSkillRank('total_possession', activeHostId) > 0 && currentIndex === this.timeSegments.length - 1 && state.controlState !== 'PERMANENT_SLIME' && state.controlState !== 'SLIME_DETACHED') {
             this.onTimeAdvanced({ gameEvent: 'start_clicker_game', hostId: activeHostId });
             return;
         }
 
+        // 推进到下一时间段或第二天
         if (currentIndex >= this.timeSegments.length - 1) {
             this.nextDay();
         } else {
@@ -1329,7 +1539,7 @@ class TimeManager {
             this.onTimeAdvanced();
         }
     }
-    // 文件: game.js
+    // ▲▲▲ 修复结束 ▲▲▲
 
     nextDay() {
         const LANG = this.languageManager.getCurrentLanguageData();
@@ -1337,12 +1547,34 @@ class TimeManager {
         state.time.day++;
         state.time.dayOfWeek = (state.time.dayOfWeek % 7) + 1;
         state.time.segment = 'morning-1';
-        state.story.dailyFlow = (state.time.dayOfWeek > 5) ? 'weekend' : 'none';
         state.story.nsfwActsToday = 0;
 
         Object.values(state.hosts).forEach(host => {
             host.nsfwUsedThisSegment = false;
         });
+
+        // --- 核心修复：仅在宿主模式下，才启动每日计划流程 ---
+        if (state.controlState === 'HOST') {
+            const flows = this.game.getActiveHostFlows?.();
+            // 设定今日的默认流程（工作日/周末）
+            state.story.dailyFlow = (state.time.dayOfWeek > 5) ? 'weekend' : 'none';
+            // 记录系统计划，用于后续判断玩家是否“违抗”计划
+            state.story.systemPlannedFlow = (state.time.dayOfWeek > 5)
+                ? 'weekend'
+                : (flows?.defaultFlow || 'workday');
+
+            // 标记：今天需要在清晨第一次弹出路线选择
+            state.temp = state.temp || {};
+            state.temp.routePromptPendingDay = state.time.day;
+
+            // 关键：只有在宿主模式下，才准备UI并安排弹窗
+            this.prepareRoutePlannerForToday();
+            requestAnimationFrame(() => this.showDailyRoutePromptIfNeeded());
+        } else {
+            // 在任何非宿主模式下，直接将日程设为'none'，并且不设置任何待办标记
+            state.story.dailyFlow = 'none';
+        }
+        // --- 修复结束 ---
 
         if (state.story.countdown.key) {
             state.story.countdown.days--;
@@ -1379,10 +1611,8 @@ class TimeManager {
             this.uiManager.showMessage('toast_sanity_recovered_sleep', 'success');
         }
 
-        // ▼▼▼ 核心修正：修复傀儡保养收益的计算逻辑 ▼▼▼
         const maintenanceLevel = state.story.flags.chapter2.upgrades.puppet_maintenance_level || 0;
         if (maintenanceLevel > 0) {
-            // 只统计：是傀儡 && 未断联 && 不是当前玩家控制的宿主
             const puppetCount = Object.entries(state.hosts)
                 .filter(([id, h]) => h.isPuppet && h.status !== 'DISCONNECTED' && id !== state.activeHostId)
                 .length;
@@ -1392,7 +1622,6 @@ class TimeManager {
                 this.uiManager.showMessage('toast_maintenance_income', 'success', { POINTS: pointsGained });
             }
         }
-        // ▲▲▲ 修正结束 ▲▲▲
 
         this.updateOnTimePassage(true);
         this.onTimeAdvanced();
@@ -1403,67 +1632,109 @@ class TimeManager {
         const LANG = this.languageManager.getCurrentLanguageData();
         const state = this.stateManager.getState();
 
+        // 清理与当前 day:segment 不一致的旧锁
+        if (state.temp?.dynamicOverrideLock) {
+            const now = `${state.time.day}:${state.time.segment}`;
+            Object.keys(state.temp.dynamicOverrideLock).forEach(id => {
+                if (state.temp.dynamicOverrideLock[id] !== now) delete state.temp.dynamicOverrideLock[id];
+            });
+        }
+
         state.temp = state.temp || {};
         Object.values(state.hosts).forEach(h => h.nsfwUsedThisSegment = false);
 
         Object.keys(state.hosts).forEach(hostId => {
-            // 只规划非玩家当前控制的AI宿主
-            if (hostId !== state.activeHostId && state.hosts[hostId].isAiControlled) {
-                const host = state.hosts[hostId];
+            const host = state.hosts[hostId];
+            if (!host || host.status === 'DISCONNECTED') return;
+
+            let locationOverridden = false;
+
+            // 1. 最高优先级：处理动态日程规则 (特殊移动)
+            const rules = gameData.dynamicDailyFlows?.[state.chapter];
+            if (Array.isArray(rules)) {
+                for (const rule of rules) {
+                    if (rule.hostId !== hostId) continue;
+                    if (typeof rule.condition === 'function' && !rule.condition(state)) continue;
+
+                    // 排除傀儡
+                    if (host.isPuppet) continue;
+
+                    // 若当前是接管或永久接管，且此 host 是被接管的激活宿主 → 忽视特殊动线
+                    if ((state.controlState === 'SLIME' || state.controlState === 'PERMANENT_SLIME') &&
+                        hostId === state.activeHostId) {
+                        continue; // 跳过本条特殊动线检查
+                    }
+
+                    // 仅 HOST 模式下把激活宿主视为“可走特殊动线”的对象
+                    const isControlledHost = (state.controlState === 'HOST') && hostId === state.activeHostId;
+
+                    // 其他 AI（不是当前激活宿主）可走特殊动线
+                    const isActiveAI = hostId !== state.activeHostId;
+
+                    if (!(isControlledHost || isActiveAI)) continue;
+
+                    // 检查时段匹配
+                    const isWorkday = state.time.dayOfWeek <= 5;
+                    const segKey = `${state.time.segment}@${isWorkday ? 'workday' : 'weekend'}`;
+                    if (!rule.segments.includes(segKey)) continue;
+
+                    // 命中特殊动线
+                    host.expectedLocationId = rule.locationId;
+                    state.temp = state.temp || {};
+                    state.temp.dynamicOverrideLock = state.temp.dynamicOverrideLock || {};
+                    state.temp.dynamicOverrideLock[hostId] = `${state.time.day}:${state.time.segment}`; // ← 一次性段落锁
+
+                    // 避免重复提示
+                    const dedupeKey = `dynmove_${hostId}_${state.time.day}_${state.time.segment}_${rule.locationId}`;
+                    if (!state.temp[dedupeKey]) {
+                        state.temp[dedupeKey] = true;
+                        const npcName = LANG[`host_name_${hostId}`] || host.name;
+                        const locationName = LANG[this.game.getCurrentChapterLocations()[rule.locationId]?.nameKey] || rule.locationId;
+                        this.uiManager.showMessage('toast_npc_moving_to', 'info', {
+                            NPC_NAME: npcName,
+                            LOCATION_NAME: locationName
+                        });
+                    }
+
+                    // 记录 narrations
+                    state.temp.dynNarration = state.temp.dynNarration || {};
+                    state.temp.dynNarration[hostId] = {
+                        key: rule.storyTextKey || null,
+                        day: state.time.day,
+                        segment: state.time.segment
+                    };
+
+                    locationOverridden = true;
+                    break;
+                }
+            }
+
+            // 2. 如果没有被特殊移动覆盖，则处理常规日程
+            if (!locationOverridden) {
                 if (host.isPuppet) {
-                    // 如果是傀儡，规划前往待机地点
-                    const standbyLocation = gameData.chapterData[state.chapter].puppetStandbyLocationId;
-                    host.expectedLocationId = standbyLocation;
+                    const standby = gameData.chapterData[state.chapter].puppetStandbyLocationId;
+                    host.expectedLocationId = standby;
                 } else {
-                    // 如果是正常的AI，按日程规划
-                    const chapterFlows = this.game.getCurrentChapterFlows(); // 使用辅助函数
-                    if (chapterFlows && chapterFlows[hostId]) {
+                    const chapterFlows = this.game.getCurrentChapterFlows?.();
+                    if (chapterFlows && chapterFlows[hostId] && Object.keys(chapterFlows[hostId]).length > 0) {
                         const hostFlows = chapterFlows[hostId];
 
-                        // 修正后的日程表选择逻辑
-                        let flowKey = hostFlows.defaultFlow; // 首先尝试读取默认日程
-                        if (!flowKey) { // 如果没有默认，则根据日期判断
-                            flowKey = state.time.dayOfWeek <= 5 ? 'workday' : 'weekend';
-                        }
-                        // 确保我们使用的flowKey在数据中真实存在
-                        const flow = hostFlows[flowKey] || hostFlows[Object.keys(hostFlows)[0]];
+                        let flowKey = hostFlows.defaultFlow || (state.time.dayOfWeek <= 5 ? 'workday' : 'weekend');
 
-                        if (flow && flow[state.time.segment]) {
-                            host.expectedLocationId = flow[state.time.segment].locationId;
+                        if (state.story.dailyFlow && hostFlows[state.story.dailyFlow] && hostId === state.activeHostId) {
+                            flowKey = state.story.dailyFlow;
+                        }
+
+                        const seg = hostFlows[flowKey]?.[state.time.segment];
+                        if (seg?.locationId) {
+                            host.expectedLocationId = seg.locationId;
                         }
                     }
                 }
             }
         });
-        // ▲▲▲ 修正结束 ▲▲▲
-
-        // 3. AI 宿主行动执行 (在这里统一移动)
-        Object.values(state.hosts).forEach(host => {
-            if (host.isAiControlled && host.currentLocationId !== host.expectedLocationId) {
-                host.currentLocationId = host.expectedLocationId;
-            }
-        });
-
-        // 4. 玩家控制的宿主恢复体力/理智 (逻辑不变)
-        const activeHost = this.stateManager.getActiveHost();
-        if (activeHost && state.controlState === 'HOST') {
-            const isNewPeriod = state.time.segment.endsWith('-1');
-            if (isNewPeriod && !isNewDay) {
-                if (activeHost.sanity > 0) {
-                    activeHost.sanity = Math.min(100, activeHost.sanity + 15);
-                    this.uiManager.showMessage(LANG['toast_new_period_sanity_recovered'], 'success');
-                }
-                const staminaRecovery = 20 + (this.skillManager.getSkillRank('hyper_excitement', state.activeHostId) * 20);
-                activeHost.stamina = Math.min(100, activeHost.stamina + staminaRecovery);
-                this.uiManager.showMessage(LANG['toast_stamina_recovered'].replace('{AMOUNT}', staminaRecovery), 'success');
-            }
-        }
-
-        // 5. 检查并扣除控制消耗 (逻辑不变)
-        if (this.updateControlCost()) {
-            this.onTimeAdvanced({ gameEvent: 'force_return_control' });
-        }
     }
+
 
     updateControlCost() {
         const LANG = this.languageManager.getCurrentLanguageData();
@@ -1480,6 +1751,125 @@ class TimeManager {
             }
         }
         return false;
+    }
+
+
+    showDailyRoutePromptIfNeeded() {
+        // 1) 小格式化工具（代价后缀支持 {STAMINA}/{SUSPICION}）
+        const fmt = (tpl, params = {}) =>
+            String(tpl || '').replace(/\{(\w+)\}/g, (_, k) => (params[k] ?? ''));
+
+        const state = this.stateManager.getState();
+        if (!(state.time.segment === 'morning-1' &&
+            state.temp?.routePromptPendingDay === state.time.day)) return;
+
+        const LANG = this.languageManager.getCurrentLanguageData();
+        const hostFlows = this.game.getActiveHostFlows?.();
+        if (!hostFlows) return;
+
+        const candidates = Object.keys(hostFlows).filter(k => k !== 'defaultFlow');
+        if (candidates.length < 2) return;
+
+        const planned =
+            state.story.systemPlannedFlow ||
+            ((state.time.dayOfWeek > 5) ? 'weekend' : (hostFlows.defaultFlow || 'workday'));
+
+        // 宿主定制文案
+        const hostId = state.activeHostId;
+        const labelFor = (flowKey) =>
+            LANG[`host_${hostId}_${flowKey}`] ||
+            LANG[`flow_name_${flowKey}`] ||
+            flowKey;
+
+        const followPlan = LANG['action_continue'] || LANG['route_follow_plan'] || '遵从计划';
+        const buttons = [];
+
+        // 蓝：遵从计划
+        buttons.push({
+            text: `${labelFor(planned)}（${followPlan}）`,
+            variant: 'planned',
+            onClick: () => {
+                state.story.dailyFlow = planned;
+                state.temp.routePromptPendingDay = -1;
+
+                this.uiManager.showMessage('toast_route_selected', 'info', {
+                    FLOW_NAME: labelFor(planned)
+                });
+
+                // ★ 选定后：恢复旧按钮 & 移除固定按钮
+                this.uiManager.hidePlanCtaInChoiceBar?.();
+
+                this.onTimeAdvanced();
+            }
+        });
+
+        // 黄：其他路线（按钮尾部带代价，语言可切换）
+        candidates.filter(fk => fk !== planned).forEach(fk => {
+            let costKey = null;
+            if (planned === 'workday' && fk === 'weekend') costKey = 'workday_to_weekend';
+            if (planned === 'weekend' && fk === 'workday') costKey = 'weekend_to_workday';
+
+            const cost = gameData.routeDeviationCost?.[costKey];
+            const costText = cost
+                ? fmt(LANG['route_cost_suffix'], {
+                    STAMINA: cost.stamina || 0,
+                    SUSPICION: cost.suspicion || 0
+                })
+                : '';
+
+            buttons.push({
+                text: `${labelFor(fk)}${costText}`,
+                variant: 'override',
+                onClick: () => {
+                    state.story.dailyFlow = fk;
+
+                    if (cost) {
+                        const { stamina = 0, suspicion = 0 } = cost;
+                        const activeHost = this.stateManager.getActiveHost();
+                        if (activeHost) activeHost.stamina = Math.max(0, (activeHost.stamina || 0) - stamina);
+                        state.slime.suspicion = Math.min(200, (state.slime.suspicion || 0) + suspicion);
+
+                        this.uiManager.showMessage('toast_route_deviation', 'warning', {
+                            STAMINA: stamina, SUSPICION: suspicion
+                        });
+                    } else {
+                        this.uiManager.showMessage('toast_route_selected', 'info', {
+                            FLOW_NAME: labelFor(fk)
+                        });
+                    }
+
+                    state.temp.routePromptPendingDay = -1;
+
+                    // ★ 选定后：恢复旧按钮 & 移除固定按钮
+                    this.uiManager.hidePlanCtaInChoiceBar?.();
+
+                    this.onTimeAdvanced();
+                }
+            });
+        });
+
+        // ★ 打开弹窗前：不允许右上角 X 直接关闭（避免玩家绕过）
+        this.uiManager.setModalCloseVisible?.(false);
+
+        this.uiManager.openChoicesModal(LANG['story_plan_prompt'] || '今天的计划是？', buttons);
+    }
+
+
+
+    prepareRoutePlannerForToday() {
+        const state = this.stateManager.getState();
+        const flows = this.game.getActiveHostFlows?.();
+
+        // 记录“系统计划”：工作日/周末（保持你当前逻辑）
+        state.story.systemPlannedFlow = (state.time.dayOfWeek > 5)
+            ? 'weekend'
+            : (flows?.defaultFlow || 'workday');
+
+        state.temp = state.temp || {};
+        state.temp.routePromptPendingDay = state.time.day;
+
+        const LANG = this.languageManager.getCurrentLanguageData?.() || {};
+        this.uiManager.showPlanCtaInChoiceBar?.(LANG['plan_today'] || '设定今日计划');
     }
 
 }
@@ -1512,6 +1902,28 @@ class EventManager {
             console.error('Unknown event:', eventName);
             return;
         }
+
+        // ===== 新增：清理路径选择状态 =====
+        const state = this.stateManager.getState();
+
+        // 如果当前有路径选择pending，强制清理
+        if (state.temp?.routePromptPendingDay === state.time.day) {
+            console.log('Event triggered during route planning, clearing pending state');
+            state.temp.routePromptPendingDay = -1; // 清除pending标记
+
+            // 如果还没有设置dailyFlow，设置为默认值
+            if (state.story.dailyFlow === 'none') {
+                const hostFlows = this.game.getActiveHostFlows();
+                if (hostFlows && hostFlows.defaultFlow) {
+                    state.story.dailyFlow = hostFlows.defaultFlow;
+                    console.log('Auto-set dailyFlow to:', hostFlows.defaultFlow);
+                }
+            }
+        }
+
+        // 确保隐藏路径选择相关UI
+        this.uiManager.hidePlanCtaInChoiceBar?.();
+        // ===== 清理逻辑结束 =====
 
         // 这里 isShowing 表达“当前弹窗是否显示中”，建议取反隐藏类名
         const isShowing = !this.uiManager.dom.eventModal.classList.contains('hidden');
@@ -1570,13 +1982,10 @@ class EventManager {
      * @param {Array<object>} actions - 包含效果定义的对象数组。
      */
     processActionEffects(actions) {
-        if (!actions) {
-            if (typeof actions === 'function') { actions(this.game); return; }
-            if (!Array.isArray(actions)) { actions = [actions]; }
-            this.uiManager.closeEventModal();
-            this.game.update();
-            return;
-        };
+        if (typeof actions === 'function') { actions(this.game); return; }
+        if (!actions) { this.uiManager.closeEventModal(); this.game.update(); return; }
+        if (!Array.isArray(actions)) actions = [actions];
+
         this.uiManager.closeEventModal();
         this.currentEventId = null;
         this.currentEventPageIndex = 0;
@@ -1919,6 +2328,7 @@ class EventManager {
             }]
         });
     }
+
 }
 
 class NpcManager {
@@ -2286,7 +2696,8 @@ class NpcManager {
             if (Math.random() < mutationChance) {
                 const points = effects.mutationPoints || 1;
                 state.slime.mutationPoints += points;
-                this.uiManager.showMessage(`toast_mutation_up_${points}`, 'success');
+                // 修复：使用通用键，并通过第三个参数传递动态的数值
+                this.uiManager.showMessage('toast_mutation_up', 'success', { POINTS: points });
             }
         }
 
@@ -2460,7 +2871,13 @@ class Game {
 
     beginNewGame() {
         this.dom.startMenu.classList.add('hidden');
-        this.uiManager.openChapterSelectModal(); // 不再直接开始游戏，而是打开章节选择
+        this.uiManager.openChapterSelectModal((chapterId) => {
+            // 这里是你已有的“开始本章”的逻辑：
+            this.startChapter(chapterId);            // 设置 state.chapter、day=1、segment='morning-1' 等
+            // 加上两行：
+            this.timeManager.prepareRoutePlannerForToday();
+            requestAnimationFrame(() => this.timeManager.showDailyRoutePromptIfNeeded());
+        });
     }
 
     continueGame() {
@@ -2499,6 +2916,16 @@ class Game {
     update() {
         const state = this.stateManager.getState();
 
+        // ===== 新增：事件触发前的状态检查 =====
+        if (this.checkLocationTriggers()) {
+            // 位置触发事件时，确保清理路径选择状态
+            if (state.temp?.routePromptPendingDay === state.time.day) {
+                state.temp.routePromptPendingDay = -1;
+                this.uiManager.hidePlanCtaInChoiceBar?.();
+            }
+            return;
+        }
+
         if (this.checkLocationTriggers()) {
             return; // 如果触发了事件，则立即停止本次update，防止逻辑冲突
         }
@@ -2507,11 +2934,18 @@ class Game {
 
         // 1. 玩家控制的宿主：仅在未命中动态规则锁时，才按常规日程回写 expected
         if (state.controlState === 'HOST' && activeHost) {
-            const hostFlows = this.getActiveHostFlows();
-            if (hostFlows) {
-                const flow = hostFlows[state.story.dailyFlow] || hostFlows[Object.keys(hostFlows)[0]];
-                if (flow && flow[state.time.segment]) {
-                    activeHost.expectedLocationId = flow[state.time.segment].locationId;
+            // ★ 新增：检查是否有“命中特殊动线”的一次性段落锁
+            const lockTag = state.temp?.dynamicOverrideLock?.[state.activeHostId];
+            const nowTag = `${state.time.day}:${state.time.segment}`;
+            const hasDynLock = (lockTag === nowTag);
+
+            if (!hasDynLock) {
+                const hostFlows = this.getActiveHostFlows();
+                if (hostFlows) {
+                    const flow = hostFlows[state.story.dailyFlow] || hostFlows[Object.keys(hostFlows)[0]];
+                    if (flow && flow[state.time.segment]) {
+                        activeHost.expectedLocationId = flow[state.time.segment].locationId;
+                    }
                 }
             }
         }

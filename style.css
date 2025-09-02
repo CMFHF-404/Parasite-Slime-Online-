@@ -18,21 +18,29 @@ body {
 }
 
 /* Button Transitions and Hover Effects */
-.sidebar-button, .ability-button, .action-button, .event-button {
+.sidebar-button,
+.ability-button,
+.action-button,
+.event-button {
     transition: all 0.2s ease-in-out;
 }
 
-    .sidebar-button:hover, .ability-button:hover:not(:disabled), .action-button:hover:not(:disabled), .event-button:hover:not(:disabled) {
-        transform: scale(1.03);
-        filter: brightness(1.1);
-    }
+.sidebar-button:hover,
+.ability-button:hover:not(:disabled),
+.action-button:hover:not(:disabled),
+.event-button:hover:not(:disabled) {
+    transform: scale(1.03);
+    filter: brightness(1.1);
+}
 
-    /* Disabled Button Styles */
-    .ability-button:disabled, .action-button:disabled, .event-button:disabled {
-        cursor: not-allowed;
-        filter: grayscale(80%);
-        opacity: 0.7;
-    }
+/* Disabled Button Styles */
+.ability-button:disabled,
+.action-button:disabled,
+.event-button:disabled {
+    cursor: not-allowed;
+    filter: grayscale(80%);
+    opacity: 0.7;
+}
 
 /* Utility Class */
 .hidden {
@@ -67,28 +75,28 @@ body {
     background-color: rgba(31, 41, 55, 0.8);
 }
 
-    .skill-node.available {
-        border-color: #6366f1;
-        cursor: pointer;
-    }
+.skill-node.available {
+    border-color: #6366f1;
+    cursor: pointer;
+}
 
-        .skill-node.available:hover {
-            background-color: #4338ca;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
-        }
+.skill-node.available:hover {
+    background-color: #4338ca;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+}
 
-    .skill-node.maxed {
-        border-color: #f59e0b;
-        background-color: #78350f;
-        cursor: default;
-    }
+.skill-node.maxed {
+    border-color: #f59e0b;
+    background-color: #78350f;
+    cursor: default;
+}
 
-    .skill-node.locked {
-        filter: grayscale(90%);
-        cursor: not-allowed;
-        opacity: 0.6;
-    }
+.skill-node.locked {
+    filter: grayscale(90%);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
 
 .skill-tier-divider {
     display: flex;
@@ -99,19 +107,20 @@ body {
     margin-bottom: 0.5rem;
 }
 
-    .skill-tier-divider::before, .skill-tier-divider::after {
-        content: '';
-        flex: 1;
-        border-bottom: 1px solid #4b5563;
-    }
+.skill-tier-divider::before,
+.skill-tier-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #4b5563;
+}
 
-    .skill-tier-divider:not(:empty)::before {
-        margin-right: .5em;
-    }
+.skill-tier-divider:not(:empty)::before {
+    margin-right: .5em;
+}
 
-    .skill-tier-divider:not(:empty)::after {
-        margin-left: .5em;
-    }
+.skill-tier-divider:not(:empty)::after {
+    margin-left: .5em;
+}
 
 /* Special UI Element Styles */
 .control-warning-bg {
@@ -131,12 +140,12 @@ body {
     background-position: center;
 }
 
-    .event-modal-bg::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background-color: rgba(0,0,0,0.4);
-    }
+.event-modal-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+}
 
 /* Intro & Game Over Text Boxes */
 .intro-text-box {
@@ -168,17 +177,17 @@ body {
     border-radius: 0.5rem;
     padding: 0.75rem;
     border: 1px solid #374151;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
 .task-button-interactive {
     transition: all 0.2s ease-in-out;
 }
 
-    .task-button-interactive:hover {
-        background-color: rgba(55, 65, 81, 0.5);
-        border-color: #f59e0b;
-    }
+.task-button-interactive:hover {
+    background-color: rgba(55, 65, 81, 0.5);
+    border-color: #f59e0b;
+}
 
 /* Favorability Bar */
 .favor-bar-bg {
@@ -230,13 +239,13 @@ body {
 
 #clicker-button {
     background: radial-gradient(circle, #a855f7, #7c3aed);
-    box-shadow: 0 0 20px #a855f7, inset 0 0 10px rgba(255,255,255,0.3);
+    box-shadow: 0 0 20px #a855f7, inset 0 0 10px rgba(255, 255, 255, 0.3);
     transition: transform 0.05s ease-out;
 }
 
-    #clicker-button:active {
-        transform: scale(0.95);
-    }
+#clicker-button:active {
+    transform: scale(0.95);
+}
 
 /* Main Menu Styles */
 #start-menu-bg {
@@ -247,8 +256,10 @@ body {
     cursor: not-allowed;
     filter: grayscale(80%);
     opacity: 0.5;
-    background-color: #4a5568; /* Tailwind gray-600 */
+    background-color: #4a5568;
+    /* Tailwind gray-600 */
 }
+
 /* 新增：语言切换按钮样式 */
 .lang-switch-button {
     position: absolute;
@@ -265,10 +276,11 @@ body {
     transition: all 0.2s ease-in-out;
 }
 
-    .lang-switch-button:hover {
-        background-color: #4f46e5;
-        color: white;
-    }
+.lang-switch-button:hover {
+    background-color: #4f46e5;
+    color: white;
+}
+
 /* ============================================= */
 /* ↓↓↓ 用这个新版本替换 style.css 中的旧样式 ↓↓↓ */
 /* ============================================= */
@@ -277,48 +289,56 @@ body {
 .host-panel.status-control,
 .host-panel.status-control .host-portrait,
 .status-badge.status-control {
-    border-color: #9333ea; /* purple-600 */
+    border-color: #9333ea;
+    /* purple-600 */
 }
 
 .status-badge.status-control {
     background-color: #7e22ce;
 }
+
 /* purple-700 */
 
 /* 【修改】傀儡状态: 黄色 */
 .host-panel.status-puppet,
 .host-panel.status-puppet .host-portrait,
 .status-badge.status-puppet {
-    border-color: #eab308; /* yellow-500 */
+    border-color: #eab308;
+    /* yellow-500 */
 }
 
 .status-badge.status-puppet {
     background-color: #ca8a04;
 }
+
 /* yellow-600 */
 
 /* 正常状态: 绿色 */
 .host-panel.status-normal,
 .host-panel.status-normal .host-portrait,
 .status-badge.status-normal {
-    border-color: #16a34a; /* green-600 */
+    border-color: #16a34a;
+    /* green-600 */
 }
 
 .status-badge.status-normal {
     background-color: #15803d;
 }
+
 /* green-700 */
 
 /* 断联状态: 灰色 */
 .host-panel.status-disconnected,
 .host-panel.status-disconnected .host-portrait,
 .status-badge.status-disconnected {
-    border-color: #4b5563; /* gray-600 */
+    border-color: #4b5563;
+    /* gray-600 */
 }
 
 .status-badge.status-disconnected {
     background-color: #374151;
 }
+
 /* gray-700 */
 
 /* 断联状态的特殊样式 */
@@ -357,17 +377,38 @@ body {
 
 /* --- Store Item Styles --- */
 .store-item {
-    border-color: #4b5563; /* gray-600 */
+    border-color: #4b5563;
+    /* gray-600 */
     transition: all 0.2s ease-in-out;
 }
 
-    .store-item .buy-button:disabled {
-        background-color: #4b5563; /* gray-600 */
-        cursor: not-allowed;
-        filter: grayscale(50%);
-    }
+.store-item .buy-button:disabled {
+    background-color: #4b5563;
+    /* gray-600 */
+    cursor: not-allowed;
+    filter: grayscale(50%);
+}
+
 /* 在 style.css 文件中 */
 #main-content {
     /* ▼▼▼ 新增背景过渡效果 ▼▼▼ */
     transition: background-image 1s ease-in-out;
+}
+
+/* 路线未选定：锁住选择区，只显示 #plan-cta-in-bar */
+#choices-container.route-locked {
+    position: relative;
+}
+
+#choices-container.route-locked * {
+    display: none !important;
+}
+
+#choices-container.route-locked #plan-cta-in-bar {
+    display: block !important;
+}
+
+/* 区域事件/进入宿主的容器整体隐藏（未选计划时） */
+#extra-actions-container.route-locked {
+    display: none !important;
 }
