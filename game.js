@@ -2531,7 +2531,7 @@ class Game {
                         flowKey = hostFlows.defaultFlow || Object.keys(hostFlows).find(k => k !== 'defaultFlow') || null;
                     }
                     // 如果玩家手动指定了（上班/请假），且是当前宿主，则覆盖
-                    if (state.story.dailyFlow && hostFlows[state.story.dailyFlow] && hostId === state.activeHostId) {
+                    if (state.story.dailyFlow && hostFlows[state.story.dailyFlow]) {
                         flowKey = state.story.dailyFlow;
                     }
 
