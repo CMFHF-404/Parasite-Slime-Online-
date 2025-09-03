@@ -1485,6 +1485,7 @@ class TimeManager {
         // ▲▲▲ 新增方法结束 ▲▲▲
     }
 
+
     // ▼▼▼ 【BUG修复】请用这个新函数完整替换旧的 advanceSegment 函数 ▼▼▼
     advanceSegment() {
         const LANG = this.languageManager.getCurrentLanguageData();
@@ -1529,15 +1530,38 @@ class TimeManager {
             return;
         }
 
-        // 推进到下一时间段或第二天
+        // ▼▼▼ 核心修改部分开始 ▼▼▼
+        const currentSegmentPrefix = state.time.segment.split('-')[0];
+
         if (currentIndex >= this.timeSegments.length - 1) {
             this.nextDay();
         } else {
             const nextSegment = this.timeSegments[currentIndex + 1];
+            const nextSegmentPrefix = nextSegment.split('-')[0];
+
+            // 检查是否是大的时间段跳转 (e.g., afternoon -> evening)
+            if (currentSegmentPrefix !== nextSegmentPrefix) {
+                if (state.controlState === 'HOST' && activeHost && activeHost.stamina < 100) {
+                    const hyperExcitementRank = this.skillManager.getSkillRank('hyper_excitement', state.activeHostId);
+
+                    // 基础恢复20点，每级兴奋荷尔蒙额外恢复20点
+                    const staminaRestored = 20 + (hyperExcitementRank * 20);
+
+                    activeHost.stamina = Math.min(100, activeHost.stamina + staminaRestored);
+                    this.uiManager.showMessage(
+                        'toast_stamina_recovered',
+                        'success', {
+                        AMOUNT: staminaRestored
+                    }
+                    );
+                }
+            }
+
             state.time.segment = nextSegment;
             this.updateOnTimePassage();
             this.onTimeAdvanced();
         }
+        // ▲▲▲ 核心修改部分结束 ▲▲▲
     }
     // ▲▲▲ 修复结束 ▲▲▲
 
@@ -2797,14 +2821,29 @@ class TetrisManager {
         else if (e.keyCode === 40) this.playerDrop(); else if (e.keyCode === 38) this.playerRotate(1);
     }
     start() {
-        // ✅ 每轮开局重置并刷新UI
+        // 若上一局未清理，先停掉
+        if (this.running) this.stop();
+
+        // —— 重置状态 —— 
+        this.completed = false;
+        this.running = true;
         this.linesCleared = 0;
+        this.dropCounter = 0;
+        this.lastTime = 0;
+
+        // UI：更新剩余行数
         const el = document.getElementById('tetris-lines-left');
         if (el) el.textContent = this.TARGET_LINES;
 
+        // 输入与首个方块
         document.addEventListener('keydown', this.boundHandleKeyDown);
         this.playerReset();
-        this.update();
+
+        // 画一帧（可选，但体验更好）
+        this.draw();
+
+        // 启动主循环
+        this.animationFrameId = requestAnimationFrame(this.boundUpdate);
     }
 }
 
@@ -3035,6 +3074,7 @@ class Game {
             }
         } else {
             const state = this.stateManager.getState();
+
             // --- Restored Logic Begins ---
             if (state.controlState === 'SLIME' && state.activeHostId !== 'song_xin') {
                 const cost = 15;
