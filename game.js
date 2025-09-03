@@ -1,6 +1,6 @@
 ﻿// =================================================================
 //
-//                      寄生史莱姆 - v0.3.0 (新增第二章)
+//                      寄生史莱姆 - v0.3.2 (修复俄罗斯方块BUG)
 //                      Game Logic File
 //
 // =================================================================
@@ -1735,25 +1735,6 @@ class TimeManager {
         });
     }
 
-
-    updateControlCost() {
-        const LANG = this.languageManager.getCurrentLanguageData();
-        const state = this.stateManager.getState();
-        const activeHost = this.stateManager.getActiveHost();
-        if (activeHost && state.controlState === 'SLIME') {
-            if (state.activeHostId === 'song_xin') return false;
-            const cost = 15; activeHost.stamina -= cost;
-            this.uiManager.showMessage(LANG['toast_control_cost'].replace('{COST}', cost), 'warning');
-            if (activeHost.stamina <= 0) {
-                activeHost.stamina = 0;
-                this.uiManager.showMessage(LANG['toast_control_lost_energy'], 'error');
-                return true;
-            }
-        }
-        return false;
-    }
-
-
     showDailyRoutePromptIfNeeded() {
         // 1) 小格式化工具（代价后缀支持 {STAMINA}/{SUSPICION}）
         const fmt = (tpl, params = {}) =>
@@ -3039,14 +3020,42 @@ class Game {
     onTimeAdvanced(event = {}) {
         if (event.gameEvent) {
             switch (event.gameEvent) {
-                case 'force_return_control': this.returnControl(true); break;
+                case 'force_return_control':
+                    this.returnControl(true);
+                    break;
                 case 'start_clicker_game':
                     this.eventManager.startClickerGame(event.hostId);
                     break;
-                case 'health_check_failed': this.eventManager.triggerEvent('health_check_failure'); break;
-                case 'bomb_detonated': this.uiManager.showGameOver('BOMB_DETONATED'); break; // <-- 处理新的事件
+                case 'health_check_failed':
+                    this.eventManager.triggerEvent('health_check_failure');
+                    break;
+                case 'bomb_detonated':
+                    this.uiManager.showGameOver('BOMB_DETONATED');
+                    break;
             }
-        } else { this.update(); }
+        } else {
+            const state = this.stateManager.getState();
+            // --- Restored Logic Begins ---
+            if (state.controlState === 'SLIME' && state.activeHostId !== 'song_xin') {
+                const cost = 15;
+                const activeHost = this.stateManager.getActiveHost();
+
+                if (activeHost) {
+                    activeHost.stamina -= cost;
+                    this.uiManager.showMessage('toast_control_cost', 'warning', { COST: cost });
+
+                    if (activeHost.stamina <= 0) {
+                        activeHost.stamina = 0;
+                        const LANG = this.languageManager.getCurrentLanguageData();
+                        this.uiManager.showMessage(LANG['toast_control_lost_energy'], 'error');
+                        this.returnControl(true); // Forcibly return control
+                        return; // Stop further updates for this turn
+                    }
+                }
+            }
+            // --- Restored Logic Ends ---
+            this.update();
+        }
     }
 
     // 在 Game 类中
