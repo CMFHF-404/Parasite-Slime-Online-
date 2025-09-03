@@ -2156,7 +2156,13 @@ class EventManager {
         this.uiManager.dom.tetrisModal.classList.remove('hidden');
         const canvas = document.getElementById('tetris-canvas');
 
+        // 新增：本地完成锁
+        let consumed = false;
+
         const onTetrisComplete = (success) => {
+            if (consumed) return;     // ★ 防抖：只处理一次
+            consumed = true;
+
             // 清理：防止后续意外再次触发
             this.uiManager.dom.tetrisSkipButton.onclick = null;
             if (this.tetrisManager) { this.tetrisManager.stop(); }
@@ -2723,6 +2729,8 @@ class TetrisManager {
         this.colors = [null, '#FF0D72', '#0DC2FF', '#0DFF72', '#F538FF', '#FF8E0D', '#FFE138', '#3877FF'];
         this.boundHandleKeyDown = this.handleKeyDown.bind(this);
         this.boundUpdate = this.update.bind(this);
+        this.running = false;     // 是否在跑动画循环
+        this.completed = false;   // 是否已经胜利/失败完成
     }
     createMatrix(w, h) { const m = []; while (h--) { m.push(new Array(w).fill(0)); } return m; }
     createPiece(t) {
@@ -2771,21 +2779,51 @@ class TetrisManager {
         document.getElementById('tetris-lines-left').textContent = Math.max(0, this.TARGET_LINES - this.linesCleared);
         if (this.linesCleared >= this.TARGET_LINES) this.gameWon();
     }
-    stop() { cancelAnimationFrame(this.animationFrameId); document.removeEventListener('keydown', this.boundHandleKeyDown); }
-    gameOver() { this.stop(); this.onComplete(false); }
-    gameWon() { this.stop(); this.onComplete(true); }
+    stop() {
+        this.running = false;
+        if (this.animationFrameId != null) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+        document.removeEventListener('keydown', this.boundHandleKeyDown);
+    }
+    gameOver() {
+        if (this.completed) return;
+        this.completed = true;
+        this.stop();
+        this.onComplete(false);
+    }
+    gameWon() {
+        if (this.completed) return;
+        this.completed = true;
+        this.stop();
+        this.onComplete(true);
+    }
+    // 4) update 只在 running && !completed 时继续排帧
     update(t = 0) {
-        const dt = t - this.lastTime; this.lastTime = t; this.dropCounter += dt;
+        if (!this.running || this.completed) return;
+        const dt = t - this.lastTime;
+        this.lastTime = t;
+        this.dropCounter += dt;
         if (this.dropCounter > this.dropInterval) this.playerDrop();
-        this.draw(); this.animationFrameId = requestAnimationFrame(this.boundUpdate);
+        this.draw();
+        if (this.running && !this.completed) {
+            this.animationFrameId = requestAnimationFrame(this.boundUpdate);
+        }
     }
     handleKeyDown(e) {
         if (e.keyCode === 37) this.playerMove(-1); else if (e.keyCode === 39) this.playerMove(1);
         else if (e.keyCode === 40) this.playerDrop(); else if (e.keyCode === 38) this.playerRotate(1);
     }
     start() {
+        // ✅ 每轮开局重置并刷新UI
+        this.linesCleared = 0;
+        const el = document.getElementById('tetris-lines-left');
+        if (el) el.textContent = this.TARGET_LINES;
+
         document.addEventListener('keydown', this.boundHandleKeyDown);
-        this.playerReset(); this.update();
+        this.playerReset();
+        this.update();
     }
 }
 

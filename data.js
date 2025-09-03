@@ -1059,7 +1059,7 @@ const allEventData = {
             }]
         }]
     },
-    
+
 
     //===刘敏相关事件===
     'takeover_host_liu_min': {
@@ -1264,7 +1264,7 @@ const allEventData = {
             }]
         }]
     },
-   
+
     'memory_plunder_success_jane': {
         titleKey: 'event_mem_plunder_success_jane_title',
         pages: [
@@ -1732,7 +1732,7 @@ const allNsfwData = {
                 titleKey: 'nsfw_event_zq_title_BJ',
                 images: { SLIME: "image/CG/宋欣/第二章/与赵齐民BJ.png" },
                 descriptions: { SLIME: "zq_nsfw_desc_sx_slime_BJ" },
-                effects: { favorability: 15, stamina: -30, baseSuspicion: 25, interactionSuspicion: 15, mutationChance: 0.5, mutationPoints: 2 }
+                effects: { favorability: 15, stamina: -30, sanity: -20, baseSuspicion: 25, interactionSuspicion: 15, mutationChance: 0.5, mutationPoints: 2 }
             },
             'zhao_qimin_MS': {
                 npcId: 'zhao_qimin', // 【新增】明确NPC ID
@@ -1744,9 +1744,9 @@ const allNsfwData = {
                 titleKey: 'nsfw_event_zq_title_MS',
                 images: { SLIME: "image/CG/宋欣/第二章/与赵齐民MS.png" },
                 descriptions: { SLIME: "zq_nsfw_desc_sx_slime_MS" },
-                effects: { favorability: 30, stamina: -50, baseSuspicion: 25, interactionSuspicion: 35, mutationChance: 0.7, mutationPoints: 3 }
+                effects: { favorability: 30, stamina: -50, sanity: -40, baseSuspicion: 25, interactionSuspicion: 35, mutationChance: 0.7, mutationPoints: 3 }
             },
-             'song_wei_kiss': {
+            'song_wei_kiss': {
                 npcId: 'song_wei', // 从宋欣视角看，宋薇此时是“在场的NPC”
                 buttonTextKey: 'nsfw_choice_kiss_song_wei',
                 condition: (state) =>
@@ -1761,7 +1761,7 @@ const allNsfwData = {
                 images: { SLIME: "image/CG/宋欣/与宋薇舌吻.png" }, // 新增的图片路径
                 effects: { favorability: 0, stamina: 0, baseSuspicion: 0, interactionSuspicion: 0, mutationChance: 0.5, mutationPoints: 2 }
             }
-        },       
+        },
     },
 
     // ===================================
@@ -1796,7 +1796,7 @@ const allNsfwData = {
                 titleKey: { HOST: "zq_nsfw_desc_zh_host_BJ_title", SLIME: "zq_nsfw_desc_zh_slime_BJ_title" },
                 images: { HOST: "image/CG/张慧丽/宿主模式/与赵齐民BJ.png", SLIME: "image/CG/张慧丽/接管模式/与赵齐民BJ.png" },
                 descriptions: { HOST: "zq_nsfw_desc_zh_host_BJ", SLIME: "zq_nsfw_desc_zh_slime_BJ" },
-                effects: { favorability: 15, stamina: -30,baseSuspicion: 10, interactionSuspicion: 20, mutationChance: 0.4, mutationPoints: 1 }
+                effects: { favorability: 15, stamina: -30, sanity: -20, baseSuspicion: 10, interactionSuspicion: 20, mutationChance: 0.4, mutationPoints: 1 }
             },
             'zhao_qimin_MS': {
                 npcId: 'zhao_qimin', // 【新增】明确NPC ID
@@ -1808,7 +1808,7 @@ const allNsfwData = {
                 titleKey: { HOST: "zq_nsfw_desc_zh_host_MS_title", SLIME: "zq_nsfw_desc_zh_slime_MS_title" },
                 images: { HOST: "image/CG/张慧丽/宿主模式/与赵齐民MS.png", SLIME: "image/CG/张慧丽/接管模式/与赵齐民MS.png" },
                 descriptions: { HOST: "zq_nsfw_desc_zh_host_MS", SLIME: "zq_nsfw_desc_zh_slime_MS" },
-                effects: { favorability: 30, stamina: -50, baseSuspicion:10, interactionSuspicion: 35, mutationChance: 0.6, mutationPoints: 2 }
+                effects: { favorability: 30, stamina: -50, sanity: -40, baseSuspicion: 10, interactionSuspicion: 35, mutationChance: 0.6, mutationPoints: 2 }
             },
             'liu_min_lp': {
                 npcId: 'liu_min',
@@ -1820,7 +1820,7 @@ const allNsfwData = {
                 titleKey: { HOST: "nsfw_title_huili_liumin_lp_host", SLIME: "nsfw_title_huili_liumin_lp_slime" },
                 images: { HOST: "image/CG/张慧丽/宿主模式/与刘敏LP.png", SLIME: "image/CG/张慧丽/接管模式/与刘敏LP.png" },
                 descriptions: { HOST: "nsfw_desc_huili_liumin_lp_host", SLIME: "nsfw_desc_huili_liumin_lp_slime" },
-                effects: { favorability: 20, stamina: -40, baseSuspicion: 0, interactionSuspicion: 35, mutationChance: 0.4, mutationPoints: 1 }
+                effects: { favorability: 20, stamina: -40, sanity: -20, baseSuspicion: 0, interactionSuspicion: 35, mutationChance: 0.4, mutationPoints: 1 }
             },
             'liu_min_lp_livingroom': {
                 npcId: 'liu_min',
@@ -1833,7 +1833,7 @@ const allNsfwData = {
                 titleKey: { HOST: "nsfw_title_huili_liumin_lp_livingroom_host", SLIME: "nsfw_title_huili_liumin_lp_livingroom_slime" },
                 images: { HOST: "image/CG/张慧丽/宿主模式/与刘敏LP.png", SLIME: "image/CG/张慧丽/接管模式/与刘敏LP.png" }, // 注意：这里复用了之前的图片
                 descriptions: { HOST: "nsfw_desc_huili_liumin_lp_livingroom_host", SLIME: "nsfw_desc_huili_liumin_lp_livingroom_slime" },
-                effects: { favorability: 20, stamina: -40, baseSuspicion: 0, interactionSuspicion: 35, mutationChance: 0.4, mutationPoints: 1 }
+                effects: { favorability: 20, stamina: -40, sanity: -20, baseSuspicion: 0, interactionSuspicion: 35, mutationChance: 0.4, mutationPoints: 1 }
             },
             // ... (zhang_huili已有的 partnered 事件)
             'liu_min_kiss': {
@@ -1912,7 +1912,7 @@ const allNsfwData = {
                 titleKey: { HOST: "zq_nsfw_desc_lm_host_BJ_title", SLIME: "zq_nsfw_desc_lm_slime_BJ_title" },
                 images: { HOST: "image/CG/刘敏/宿主模式/与赵齐民BJ.png", SLIME: "image/CG/刘敏/接管模式/与赵齐民BJ.png" },
                 descriptions: { HOST: "zq_nsfw_desc_lm_host_BJ", SLIME: "zq_nsfw_desc_lm_slime_BJ" },
-                effects: { favorability: 15, stamina: -30, baseSuspicion: 25, interactionSuspicion: 25, mutationChance: 0.4, mutationPoints: 1 }
+                effects: { favorability: 15, stamina: -30, sanity: -20, baseSuspicion: 25, interactionSuspicion: 25, mutationChance: 0.4, mutationPoints: 1 }
             },
             'zhao_qimin_MS': {
                 npcId: 'zhao_qimin',
@@ -1924,7 +1924,7 @@ const allNsfwData = {
                 titleKey: { HOST: "zq_nsfw_desc_lm_host_MS_title", SLIME: "zq_nsfw_desc_lm_slime_MS_title" },
                 images: { HOST: "image/CG/刘敏/宿主模式/与赵齐民MS.png", SLIME: "image/CG/刘敏/接管模式/与赵齐民MS.png" },
                 descriptions: { HOST: "zq_nsfw_desc_lm_host_MS", SLIME: "zq_nsfw_desc_lm_slime_MS" },
-                effects: { favorability: 30, stamina: -50, baseSuspicion: 25, interactionSuspicion: 40, mutationChance: 0.6, mutationPoints: 2 }
+                effects: { favorability: 30, stamina: -50, sanity: -40, baseSuspicion: 25, interactionSuspicion: 40, mutationChance: 0.6, mutationPoints: 2 }
             },
             // ... (liu_min已有的 partnered 事件)
             'zhang_huili_kiss': {
@@ -1987,7 +1987,7 @@ const allNsfwData = {
                 titleKey: "nsfw_title_jane_zq_bj",
                 images: { SLIME: "image/CG/Jane/与赵齐民BJ.png" },
                 descriptions: { SLIME: "nsfw_desc_jane_zq_bj_slime" },
-                effects: { favorability: 25, stamina: 0, baseSuspicion: 10, interactionSuspicion: 30, mutationChance: 0.5, mutationPoints: 2 }
+                effects: { favorability: 25, stamina: 0, sanity: -20, baseSuspicion: 10, interactionSuspicion: 30, mutationChance: 0.5, mutationPoints: 2 }
             },
             'zhao_qimin_MS': {
                 npcId: 'zhao_qimin',
@@ -1999,7 +1999,7 @@ const allNsfwData = {
                 titleKey: "nsfw_title_jane_zq_ms",
                 images: { SLIME: "image/CG/Jane/与赵齐民MS.png" },
                 descriptions: { SLIME: "nsfw_desc_jane_zq_ms_slime" },
-                effects: { favorability: 40, stamina: 0, baseSuspicion: 10, interactionSuspicion: 50, mutationChance: 0.7, mutationPoints: 3 }
+                effects: { favorability: 40, stamina: 0, sanity: -40, baseSuspicion: 10, interactionSuspicion: 50, mutationChance: 0.7, mutationPoints: 3 }
             }
         }
     },
@@ -2088,7 +2088,7 @@ const taskData = {
         ],
         hintsKeys: [
             { key: 'task_deep_or_shallow_hint1', condition: (state) => true },
-             { key: 'task_deep_or_shallow_hint2', condition: (state) => true }
+            { key: 'task_deep_or_shallow_hint2', condition: (state) => true }
         ]
     },
     'bomb_countdown': {
@@ -2117,7 +2117,7 @@ const locationEventData = {
         condition: (state) => state.chapter === 1 && state.npcs.zhang_chao.isPresent, // 条件简化为：在第一章且张超在场
         action: (game) => { game.openNpcInteractionModal('zhang_chao'); } // 打开新的、统一的互动菜单
     },
-   
+
     // 在 data.js 的 locationEventData 对象中
 
     'memory_plunder_songxin': {
@@ -2282,7 +2282,7 @@ const locationEventData = {
     },
     //与刘敏互动
     'interact_with_liu_min_entry': {
-        location: ['village_square', 'village_lake','liumin_home_bedroom'],
+        location: ['village_square', 'village_lake', 'liumin_home_bedroom'],
         npcId: 'liu_min',
         buttonTextKey: 'event_interact_with_npc_btn',
         condition: (state) => state.npcs.liu_min.isPresent && state.activeHostId === 'zhang_huili',
@@ -2613,11 +2613,11 @@ const dynamicDailyFlows = {
 
 // 偏离系统计划的代价（可按需细化到角色/章节）
 const routeDeviationCost = {
-  // 从系统计划是 workday → 实际选 weekend（请假/摆烂）
-  workday_to_weekend: { stamina: 20, suspicion: 60 },
+    // 从系统计划是 workday → 实际选 weekend（请假/摆烂）
+    workday_to_weekend: { stamina: 20, suspicion: 60 },
 
-  // 从系统计划是 weekend → 实际选 workday（周末硬上班；示例给个小代价）
-  weekend_to_workday: { stamina: 10, suspicion: 20 }
+    // 从系统计划是 weekend → 实际选 workday（周末硬上班；示例给个小代价）
+    weekend_to_workday: { stamina: 10, suspicion: 20 }
 };
 
 

@@ -5,7 +5,7 @@
 const LANGS = {
     'zh': {
         // Meta
-        "game_title_long": "寄生史莱姆v0.3.0",
+        "game_title_long": "寄生史莱姆v0.3.2",
         "game_title_short": "寄生史莱姆",
 
         // Main Menu
@@ -1027,7 +1027,7 @@ const LANGS = {
     },
     'en': {
         // Meta
-        "game_title_long": "Parasite Slime v0.3.0",
+        "game_title_long": "Parasite Slime v0.3.2",
         "game_title_short": "Parasite Slime",
 
         // Main Menu
